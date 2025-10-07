@@ -19,55 +19,64 @@ If you are developing a production application, we recommend updating the config
 export default defineConfig([
   globalIgnores(['dist']),
   {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+    # Falcorp AI Retail
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+    A modern, polished React + Vite front-end for Falcorp AiButler — an AI shopping assistant and grocery catalog UI.
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+    ## Features
+    - Chat-style AI assistant UI
+    - Grocery browse, prices and stock indicators
+    - Tailwind CSS for responsive, modern styling
+    - TypeScript + Vite for fast dev and builds
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+    ## Quick start
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+    Requirements: Node 18+ and npm
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+    1. Install dependencies
+
+    ```bash
+    npm install
+    ```
+
+    2. Run development server
+
+    ```bash
+    npm run dev
+    ```
+
+    3. Build for production
+
+    ```bash
+    npm run build
+    ```
+
+    The production-ready files will be in the `dist/` folder.
+
+    ## Deploy to AWS S3 (static website)
+
+    1. Build the project:
+
+    ```bash
+    npm run build
+    ```
+
+    2. Create an S3 bucket on the AWS Console named `falcorp-ai-retail` (or any unique name). Enable "Static website hosting" and set the index document to `index.html`.
+
+    3. Upload the `dist` folder contents to S3. Using the AWS CLI:
+
+    ```bash
+    aws s3 sync ./dist s3://your-bucket-name --delete
+    ```
+
+    4. Make the bucket objects public (or configure CloudFront) and use the S3 website endpoint.
+
+    ## Notes
+    - `vite.config.ts` is configured with `base: './'` so the app works when served from S3 or a subpath.
+    - If you prefer CI/CD, I can add a GitHub Actions workflow to build and deploy to S3 automatically.
+
+    ## License
+    Add a license file (e.g., `LICENSE`) if you want to open-source this project.
+
+    ---
+    Made with ❤️ — Falcorp AiButler UI

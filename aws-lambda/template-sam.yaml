@@ -1,0 +1,29 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: Simple SAM template to deploy get-items Lambda and API
+
+Resources:
+  GetItemsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      Handler: index.handler
+      Runtime: nodejs18.x
+      CodeUri: aws-lambda/get-items/
+      Environment:
+        Variables:
+          TABLE_NAME: FalcorpGroceryItems
+      Policies:
+        - Version: '2012-10-17'
+          Statement:
+            - Effect: Allow
+              Action:
+                - dynamodb:Scan
+                - dynamodb:Query
+                - dynamodb:GetItem
+              Resource: arn:aws:dynamodb:us-east-1:YOUR_ACCOUNT_ID:table/FalcorpGroceryItems
+      Events:
+        GetItemsApi:
+          Type: Api
+          Properties:
+            Path: /items
+            Method: get

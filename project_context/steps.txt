@@ -333,10 +333,93 @@ FalcorpAiBedrockProxy proxies to bedrock
   responses each time! 🎉
 ==================================
 
+● Perfect! ✅ Fixed it!
+
+  What Changed:
+
+  Before:
+
+  You type: "Hi I want bread and apples"
+  Bot says: I think you'll like these! Found 2 options for "hi i want bread and        
+  apples"... ❌
+
+  After (2 improvements):
+
+  1. Passes extracted keywords (not full message):
+  - Extracts: "bread apples" ✅
+  - If keyword shows: Found 2 products for bread apples ✅
+
+  2. Most responses DON'T repeat anything:
+  - Perfect! I've got 2 options for you. Check them out! 🛒 ✅
+  - I think you'll like these! Found 2 options that should work perfectly. 👌 ✅       
+  - Nice! Found 2 matches for you. Have a look — I think you'll like what I found!     
+  😊 ✅
+
+  Only 1 out of 8 responses mentions the keywords:
+  - Awesome! Found 2 products for bread apples. Want to add any to your cart? 🛍️       
+
+  Summary:
+
+  - ✅ Most responses are clean and don't repeat your query
+  - ✅ When it does show keywords, it shows the clean extracted version ("bread        
+  apples") not the full message
+  - ✅ Feels more natural and less robotic
+
+  Try it again now - should feel much better! 🎉
 ==================================
+
 
 ==================================
 
+● Perfect! ✅ The quantity is now fully editable!
+
+  What Changed:
+
+  Before:
+
+  [−]  2  [+]  [Add]
+       ↑ Just a number you can't click
+
+  After:
+
+  [−]  [2]  [+]  [Add]
+       ↑ Click to type!
+
+  Features:
+
+  Three Ways to Change Quantity:
+
+  1. Click [-] - Decrease by 1
+  2. Click [+] - Increase by 1
+  3. Click the number - Type exact amount! ⌨️
+
+  Smart Validation:
+
+  - ✅ Must be between 1 and stock available
+  - ✅ Can't type 0 or negative numbers
+  - ✅ Can't exceed stock (e.g., if stock is 50, can't type 51)
+  - ✅ Highlights with blue ring when focused
+  - ✅ Shows empty if you clear it (then type new number)
+
+  Visual Feedback:
+
+  - Normal: Gray background
+  - Focused: White background + blue ring
+  - Typing: Cursor appears, ready to edit
+
+  Works Everywhere:
+
+  - ✅ Inline chat item cards
+  - ✅ Side panel items
+  - ✅ Syncs across both locations (same item ID)
+
+  Example Usage:
+
+  1. See item with stock of 100
+  2. Click the "1" → Type "25" → Press Enter or click Add
+  3. Adds 25 items to cart instantly!
+
+  Try it now - click any quantity number and type! 🎉
 ==================================
 
 ==================================

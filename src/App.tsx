@@ -76,31 +76,31 @@ function choose<T>(arr: T[]) {
 function botTextForItems(count: number, userQuery: string) {
   const cleanQuery = (userQuery || "").trim().toLowerCase();
 
-  // More conversational responses that reference what they asked for
+  // More conversational responses - mix of some with keywords, some without
   const responses = [
-    // Friendly and casual
-    `Perfect! I've got ${count} ${count === 1 ? "option" : "options"} for you${cleanQuery ? ` for "${cleanQuery}"` : ""}. Check them out! 🛒`,
+    // Simple and direct (no keyword repetition)
+    `Perfect! I've got ${count} ${count === 1 ? "option" : "options"} for you. Check them out! 🛒`,
 
     // Helpful assistant vibe
-    `Great choice! I found ${count} ${count === 1 ? "item" : "items"}${cleanQuery ? ` matching "${cleanQuery}"` : ""}. Take a look and let me know if you need anything else! ✨`,
+    `Great choice! I found ${count} ${count === 1 ? "item" : "items"} that should work. Take a look! ✨`,
 
-    // Personal shopper feel
-    `Awesome! I've pulled ${count} ${count === 1 ? "product" : "products"} for you${cleanQuery ? ` — all about ${cleanQuery}` : ""}. Want to add any to your cart? 🛍️`,
+    // Personal shopper feel (mentions keywords)
+    `Awesome! Found ${count} ${count === 1 ? "product" : "products"}${cleanQuery ? ` for ${cleanQuery}` : ""}. Want to add any to your cart? 🛍️`,
 
-    // Enthusiastic helper
-    `Nice! Found ${count} ${count === 1 ? "match" : "matches"}${cleanQuery ? ` for ${cleanQuery}` : ""}. Have a look — I think you'll like what I found! 😊`,
+    // Enthusiastic helper (no keyword)
+    `Nice! Found ${count} ${count === 1 ? "match" : "matches"} for you. Have a look — I think you'll like what I found! 😊`,
 
-    // Conversational and warm
-    `${count === 1 ? "Here's what I found" : `Got ${count} good options here`}${cleanQuery ? ` for your ${cleanQuery} search` : ""}! Let me know if you'd like me to suggest something else. 🌟`,
+    // Conversational and warm (no keyword)
+    `${count === 1 ? "Here's what I found" : `Got ${count} good options here`}! Let me know if you'd like me to suggest something else. 🌟`,
 
-    // Casual and friendly
-    `Alright! ${count} ${count === 1 ? "item" : "items"} coming right up${cleanQuery ? ` — all ${cleanQuery} related` : ""}. Take your pick! 🎯`,
+    // Casual and friendly (no keyword)
+    `Alright! ${count} ${count === 1 ? "item" : "items"} coming right up. Take your pick! 🎯`,
 
-    // Helpful recommendation style
-    `I think you'll like these! Found ${count} ${count === 1 ? "option" : "options"}${cleanQuery ? ` for "${cleanQuery}"` : ""} that should work perfectly. 👌`,
+    // Helpful recommendation style (no keyword)
+    `I think you'll like these! Found ${count} ${count === 1 ? "option" : "options"} that should work perfectly. 👌`,
 
-    // Natural conversation
-    `${count === 1 ? "Here you go! One item" : `Sweet! ${count} items`} that ${count === 1 ? "matches" : "match"} what you're looking for${cleanQuery ? ` (${cleanQuery})` : ""}. Check them out below! 🛒`,
+    // Natural conversation (no keyword)
+    `${count === 1 ? "Here you go! One item" : `Sweet! ${count} items`} that ${count === 1 ? "matches" : "match"} what you're looking for. Check them out below! 🛒`,
   ];
 
   return choose(responses);
@@ -325,9 +325,25 @@ function App({ cartItems, onAddToCart }: AppProps) {
   const [isTyping, setIsTyping] = useState(false);
   const [selectedMessageId, setSelectedMessageId] = useState<number | null>(null);
   const [mobileView, setMobileView] = useState<"chat" | "items">("chat"); // Toggle between chat and items on mobile
+  const [quantities, setQuantities] = useState<Record<string, number>>({}); // Track quantity per item ID
   const chatEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Helper functions for quantity management
+  const getQuantity = (itemId: string) => quantities[itemId] || 1;
+
+  const updateQuantity = (itemId: string, newQty: number) => {
+    setQuantities(prev => ({ ...prev, [itemId]: newQty }));
+  };
+
+  const resetQuantity = (itemId: string) => {
+    setQuantities(prev => {
+      const updated = { ...prev };
+      delete updated[itemId];
+      return updated;
+    });
+  };
 
   // 🧠 Load logged-in user
   useEffect(() => {
@@ -473,7 +489,7 @@ function App({ cartItems, onAddToCart }: AppProps) {
           {
             id: messageId,
             sender: "bot",
-            text: botTextForItems(mappedItems.length, userMsg.text),
+            text: botTextForItems(mappedItems.length, searchQuery),
             timestamp: new Date().toLocaleTimeString(),
             type: "text",
             items: mappedItems, // Store items with message
@@ -678,17 +694,141 @@ function App({ cartItems, onAddToCart }: AppProps) {
                 >
                   <div className="text-sm">{sanitizeMessage(msg.text)}</div>
 
-                  {/* 🛍️ Shop Items button for messages with products */}
+                  {/* 🛍️ Inline Item Cards with Quantity Controls */}
                   {msg.sender === "bot" && msg.items && msg.items.length > 0 && (
-                    <button
-                      className="mt-3 bg-gradient-to-r from-primary-500 to-accent-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:scale-105 transition shadow-md cursor-pointer"
-                      onClick={() => {
-                        setSelectedMessageId(msg.id);
-                        setShowGrocery(true);
-                      }}
-                    >
-                      🛍️ Shop Items ({msg.items.length})
-                    </button>
+                    <div className="mt-3 space-y-2">
+                      {msg.items.slice(0, 3).map((item) => {
+                        const quantity = getQuantity(item.id);
+
+                        const handleDecrement = () => {
+                          if (quantity > 1) updateQuantity(item.id, quantity - 1);
+                        };
+
+                        const handleIncrement = () => {
+                          if (quantity < item.stock) updateQuantity(item.id, quantity + 1);
+                        };
+
+                        const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+                          const value = e.target.value;
+                          if (value === "") {
+                            updateQuantity(item.id, 0);
+                            return;
+                          }
+                          const num = parseInt(value, 10);
+                          if (!isNaN(num) && num >= 1 && num <= item.stock) {
+                            updateQuantity(item.id, num);
+                          }
+                        };
+
+                        const handleAddToCart = () => {
+                          if (quantity < 1) return;
+                          for (let i = 0; i < quantity; i++) {
+                            onAddToCart(item);
+                          }
+                          resetQuantity(item.id); // Reset to 1 after adding
+                        };
+
+                        return (
+                          <div
+                            key={item.id}
+                            className="bg-white/90 rounded-xl p-3 shadow-md border border-gray-200 flex flex-col sm:flex-row items-start sm:items-center gap-3 hover:shadow-lg transition-all"
+                          >
+                            {/* Emoji & Info Row */}
+                            <div className="flex items-center gap-3 flex-1 min-w-0 w-full sm:w-auto">
+                              {/* Emoji */}
+                              <div className="text-2xl flex-shrink-0">
+                                {item.emoji || "🛒"}
+                              </div>
+
+                              {/* Item Info */}
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-semibold text-gray-800 text-sm truncate">
+                                  {item.name}
+                                </h4>
+                                <div className="flex items-center gap-2 text-xs flex-wrap">
+                                  <span className="text-primary-600 font-bold">{item.price}</span>
+                                  <span className="text-gray-500">•</span>
+                                  <span className={`${
+                                    item.stock > 30 ? "text-success-600" :
+                                    item.stock > 10 ? "text-yellow-600" : "text-red-600"
+                                  }`}>
+                                    Stock: {item.stock}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Quantity Controls & Add to Cart */}
+                            {item.stock === 0 ? (
+                              <button
+                                disabled
+                                className="px-4 py-2 rounded-lg text-sm font-semibold bg-gray-300 text-gray-500 cursor-not-allowed flex-shrink-0 w-full sm:w-auto"
+                              >
+                                Out of Stock
+                              </button>
+                            ) : (
+                              <div className="flex items-center gap-2 w-full sm:w-auto">
+                                {/* Quantity Controls */}
+                                <div className="flex items-center bg-gray-100 rounded-lg border border-gray-300">
+                                  <button
+                                    onClick={handleDecrement}
+                                    disabled={quantity <= 1}
+                                    className={`px-3 py-2 text-lg font-bold transition-all ${
+                                      quantity <= 1
+                                        ? "text-gray-400 cursor-not-allowed"
+                                        : "text-gray-700 hover:bg-gray-200 cursor-pointer"
+                                    }`}
+                                  >
+                                    −
+                                  </button>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    max={item.stock}
+                                    value={quantity || ""}
+                                    onChange={handleQuantityChange}
+                                    className="w-16 px-2 py-2 font-semibold text-gray-800 text-center bg-transparent border-0 focus:outline-none focus:bg-white focus:ring-2 focus:ring-primary-400 rounded"
+                                  />
+                                  <button
+                                    onClick={handleIncrement}
+                                    disabled={quantity >= item.stock}
+                                    className={`px-3 py-2 text-lg font-bold transition-all ${
+                                      quantity >= item.stock
+                                        ? "text-gray-400 cursor-not-allowed"
+                                        : "text-gray-700 hover:bg-gray-200 cursor-pointer"
+                                    }`}
+                                  >
+                                    +
+                                  </button>
+                                </div>
+
+                                {/* Add to Cart Button */}
+                                <button
+                                  onClick={handleAddToCart}
+                                  className="px-4 py-2 rounded-lg text-sm font-semibold transition-all flex-shrink-0 bg-gradient-to-r from-primary-500 to-accent-600 text-white hover:scale-105 cursor-pointer shadow-md"
+                                >
+                                  Add
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+
+                      {/* View All Button */}
+                      <button
+                        className="w-full mt-2 bg-white/70 hover:bg-white text-primary-600 px-4 py-2 rounded-lg text-sm font-semibold hover:scale-105 transition shadow-md cursor-pointer border border-primary-200"
+                        onClick={() => {
+                          setSelectedMessageId(msg.id);
+                          setShowGrocery(true);
+                          setMobileView("items");
+                        }}
+                      >
+                        {msg.items.length > 3
+                          ? `View All ${msg.items.length} Items →`
+                          : "View in Panel →"}
+                      </button>
+                    </div>
                   )}
 
                   {/* 💡 Restock button for reminder messages */}
@@ -843,43 +983,123 @@ function App({ cartItems, onAddToCart }: AppProps) {
                   rand" 🧀
                 </p>
               ) : (
-                currentItems.map((item, i) => (
-                  <div
-                    key={item.id || i}
-                    className="bg-white rounded-xl p-4 shadow-md mb-4 flex items-center gap-4 hover:shadow-xl hover:scale-[1.02] transition-all duration-300"
-                  >
-                    {/* Make emoji solid and non-shrinking */}
-                    <div className="text-2xl leading-none select-none shrink-0">
-                      {item.emoji || "🛍️"}
-                    </div>
+                currentItems.map((item, i) => {
+                  const quantity = getQuantity(item.id);
 
-                    {/* Allow text to wrap properly */}
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-gray-800 whitespace-normal break-words">
-                        {item.name}
-                      </h4>
-                      <div className="text-primary-600 font-bold">{item.price}</div>
-                      <div className="text-xs text-gray-500">{item.category}</div>
-                    </div>
+                  const handleDecrement = () => {
+                    if (quantity > 1) updateQuantity(item.id, quantity - 1);
+                  };
 
-                    <button
-                      onClick={() => onAddToCart(item)}
-                      disabled={!item.price || !isValidPriceR(item.price)}
-                      title={
-                        !item.price || !isValidPriceR(item.price)
-                          ? "Price missing/invalid"
-                          : "Add to cart"
-                      }
-                      className={`bg-gradient-to-r from-primary-500 to-accent-600 text-white px-3 py-2 rounded-lg text-sm font-semibold transition-transform ${
-                        !item.price || !isValidPriceR(item.price)
-                          ? "opacity-50 cursor-not-allowed"
-                          : "cursor-pointer hover:scale-105"
-                      }`}
+                  const handleIncrement = () => {
+                    if (quantity < item.stock) updateQuantity(item.id, quantity + 1);
+                  };
+
+                  const handleQuantityChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+                    const value = e.target.value;
+                    if (value === "") {
+                      updateQuantity(item.id, 0);
+                      return;
+                    }
+                    const num = parseInt(value, 10);
+                    if (!isNaN(num) && num >= 1 && num <= item.stock) {
+                      updateQuantity(item.id, num);
+                    }
+                  };
+
+                  const handleAddToCart = () => {
+                    if (quantity < 1) return;
+                    for (let i = 0; i < quantity; i++) {
+                      onAddToCart(item);
+                    }
+                    resetQuantity(item.id); // Reset to 1 after adding
+                  };
+
+                  return (
+                    <div
+                      key={item.id || i}
+                      className="bg-white rounded-xl p-4 shadow-md mb-4 hover:shadow-xl hover:scale-[1.02] transition-all duration-300"
                     >
-                      Add
-                    </button>
-                  </div>
-                ))
+                      <div className="flex items-center gap-4 mb-3">
+                        {/* Make emoji solid and non-shrinking */}
+                        <div className="text-2xl leading-none select-none shrink-0">
+                          {item.emoji || "🛍️"}
+                        </div>
+
+                        {/* Allow text to wrap properly */}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-gray-800 whitespace-normal break-words">
+                            {item.name}
+                          </h4>
+                          <div className="text-primary-600 font-bold">{item.price}</div>
+                          <div className="text-xs text-gray-500 flex items-center gap-2">
+                            <span>{item.category}</span>
+                            <span>•</span>
+                            <span className={`${
+                              item.stock > 30 ? "text-success-600" :
+                              item.stock > 10 ? "text-yellow-600" : "text-red-600"
+                            }`}>
+                              Stock: {item.stock}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Quantity Controls & Add Button */}
+                      {item.stock === 0 || !item.price || !isValidPriceR(item.price) ? (
+                        <button
+                          disabled
+                          className="w-full bg-gray-300 text-gray-500 px-3 py-2 rounded-lg text-sm font-semibold cursor-not-allowed"
+                        >
+                          {item.stock === 0 ? "Out of Stock" : "Price Invalid"}
+                        </button>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          {/* Quantity Controls */}
+                          <div className="flex items-center bg-gray-100 rounded-lg border border-gray-300 flex-1">
+                            <button
+                              onClick={handleDecrement}
+                              disabled={quantity <= 1}
+                              className={`px-3 py-2 text-lg font-bold transition-all ${
+                                quantity <= 1
+                                  ? "text-gray-400 cursor-not-allowed"
+                                  : "text-gray-700 hover:bg-gray-200 cursor-pointer"
+                              }`}
+                            >
+                              −
+                            </button>
+                            <input
+                              type="number"
+                              min="1"
+                              max={item.stock}
+                              value={quantity || ""}
+                              onChange={handleQuantityChange}
+                              className="flex-1 px-2 py-2 font-semibold text-gray-800 text-center bg-transparent border-0 focus:outline-none focus:bg-white focus:ring-2 focus:ring-primary-400 rounded"
+                            />
+                            <button
+                              onClick={handleIncrement}
+                              disabled={quantity >= item.stock}
+                              className={`px-3 py-2 text-lg font-bold transition-all ${
+                                quantity >= item.stock
+                                  ? "text-gray-400 cursor-not-allowed"
+                                  : "text-gray-700 hover:bg-gray-200 cursor-pointer"
+                              }`}
+                            >
+                              +
+                            </button>
+                          </div>
+
+                          {/* Add to Cart Button */}
+                          <button
+                            onClick={handleAddToCart}
+                            className="bg-gradient-to-r from-primary-500 to-accent-600 text-white px-4 py-2 rounded-lg text-sm font-semibold cursor-pointer hover:scale-105 transition-transform shadow-md"
+                          >
+                            Add to Cart
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
               )}
             </div>
           </div>
